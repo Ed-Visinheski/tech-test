@@ -12,11 +12,6 @@ BondTrade* BondTradeLoader::createTradeFromLine(std::string line) {
     std::string item;
     
     while (std::getline(ss, item, separator)) {
-        if(!item.empty() && item.back() == '\r')
-        {
-            item.pop_back();
-        }
-        
         items.push_back(item);
     }
     
@@ -52,12 +47,20 @@ void BondTradeLoader::loadTradesFromFile(std::string filename, BondTradeList& tr
     
     int lineCount = 0;
     std::string line;
-    while (std::getline(stream, line)) {
-        if (lineCount == 0) {
-        } else {
-            tradeList.add(createTradeFromLine(line));
+    while (std::getline(stream, line)) 
+    {
+        if(lineCount == 0) 
+        {
+            ++lineCount; //Skip file Header
+            continue;
         }
-        lineCount++;
+
+        if(!line.empty() && line.back() == '\r')
+        {
+            line.pop_back();
+        }
+
+        tradeList.add(createTradeFromLine(line));    
     }
 }
 
