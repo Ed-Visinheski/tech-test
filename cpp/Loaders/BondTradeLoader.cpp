@@ -12,6 +12,11 @@ BondTrade* BondTradeLoader::createTradeFromLine(std::string line) {
     std::string item;
     
     while (std::getline(ss, item, separator)) {
+        if(!item.empty() && item.back() == '\r')
+        {
+            item.pop_back();
+        }
+        
         items.push_back(item);
     }
     
@@ -19,7 +24,7 @@ BondTrade* BondTradeLoader::createTradeFromLine(std::string line) {
         throw std::runtime_error("Invalid line format");
     }
     
-    BondTrade* trade = new BondTrade(items[6]);
+    BondTrade* trade = new BondTrade(items[6], items[0]);
     
     std::tm tm = {};
     std::istringstream dateStream(items[1]);
