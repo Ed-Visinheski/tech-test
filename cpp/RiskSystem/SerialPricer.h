@@ -7,16 +7,18 @@
 #include "PricingConfigLoader.h"
 #include <map>
 #include <vector>
+#include <memory>
 #include <string>
 
 class SerialPricer {
 private:
-    std::map<std::string, IPricingEngine*> pricers_;
+    std::map<std::string, std::shared_ptr<IPricingEngine>> pricers_;
+
     void loadPricers();
-    
+    std::shared_ptr<IPricingEngine> createPricingEngine(const std::string& typeName);
+
 public:
-    ~SerialPricer();
-    void price(const std::vector<std::vector<ITrade*>>& tradeContainers, 
+    void price(const std::vector<std::vector<ITrade*>>& tradeContainers,
                IScalarResultReceiver* resultReceiver);
 };
 
