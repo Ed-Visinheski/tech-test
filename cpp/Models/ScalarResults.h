@@ -8,8 +8,12 @@
 #include <optional>
 #include <string>
 #include <iterator>
+#include <utility>
+using ScalarResultsMap = std::map<std::string, std::pair<std::optional<double>, std::optional<std::string>>>;
 
-class ScalarResults : public IScalarResultReceiver {
+class ScalarResults : public IScalarResultReceiver 
+{
+
 public:
     virtual ~ScalarResults();
     std::optional<ScalarResult> operator[](const std::string& tradeId) const;
@@ -31,17 +35,21 @@ public:
         Iterator() = default;
 
         // Iterator must be constructable from ScalarResults parent
+        Iterator(ScalarResultsMap::const_iterator scalarResultsIt): scalarResultsIt_(scalarResultsIt) {};
+
         Iterator& operator++();
         ScalarResult operator*() const;
         bool operator!=(const Iterator& other) const;
+
+        private:
+            ScalarResultsMap::const_iterator scalarResultsIt_;
     };
 
     Iterator begin() const;
     Iterator end() const;
 
 private:
-    std::map<std::string, double> results_;
-    std::map<std::string, std::string> errors_;
+    ScalarResultsMap scalarResults_ {};
 };
 
 #endif // SCALARRESULTS_H
