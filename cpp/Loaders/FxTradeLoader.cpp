@@ -1,4 +1,5 @@
 #include "FxTradeLoader.h"
+#include "CallbackTradeReceiver.h"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -50,16 +51,17 @@ FxTrade* FxTradeLoader::createTradeFromLine(std::string line)
     return trade;
 }
 
-void FxTradeLoader::loadTradesFromFile(std::string filename, FxTradeList& tradeList) {
+void FxTradeLoader::loadTradesFromFile(std::string filename, ITradeReceiver& tradeReceiver) 
+{
     if (filename.empty()) {
         throw std::invalid_argument("Filename cannot be null");
     }
-    
+
     std::ifstream stream(filename);
     if (!stream.is_open()) {
         throw std::runtime_error("Cannot open file: " + filename);
     }
-    
+
     int lineCount = 0;
     std::string line;
     while (std::getline(stream, line))
@@ -80,20 +82,26 @@ void FxTradeLoader::loadTradesFromFile(std::string filename, FxTradeList& tradeL
             line.pop_back();
         }
 
-        tradeList.add(createTradeFromLine(line));
+        tradeReceiver.add(createTradeFromLine(line));
     }
 }
 
 std::vector<ITrade*> FxTradeLoader::loadTrades() {
     FxTradeList tradeList;
     loadTradesFromFile(dataFile_, tradeList);
-    
+
     std::vector<ITrade*> result;
-    for (size_t i = 0; i < tradeList.size(); ++i) 
+    for (size_t i = 0; i < tradeList.size(); ++i)
     {
         result.push_back(tradeList[i]);
     }
     return result;
+}
+
+void FxTradeLoader::streamTrades(const std::function<void(ITrade*)>& onTrade) 
+{
+    CallbackTradeReceiver receiver(onTrade);
+    loadTradesFromFile(dataFile_, receiver);
 }
 
 std::string FxTradeLoader::getDataFile() const {

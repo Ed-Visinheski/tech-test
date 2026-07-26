@@ -1,31 +1,54 @@
 #include "StreamingTradeLoader.h"
 #include "../Loaders/BondTradeLoader.h"
 #include "../Loaders/FxTradeLoader.h"
-#include "PricingConfigLoader.h"
+#include "PricingEngineFactory.h"
 #include <stdexcept>
 
-std::vector<ITradeLoader*> StreamingTradeLoader::getTradeLoaders() {
-    std::vector<ITradeLoader*> loaders;
-    
-    BondTradeLoader* bondLoader = new BondTradeLoader();
+std::vector<std::unique_ptr<IStreamingTradeLoader>> StreamingTradeLoader::getTradeLoaders()
+{
+    std::vector<std::unique_ptr<IStreamingTradeLoader>> loaders;
+
+    auto bondLoader = std::make_unique<BondTradeLoader>();
     bondLoader->setDataFile("TradeData/BondTrades.dat");
-    loaders.push_back(bondLoader);
-    
-    FxTradeLoader* fxLoader = new FxTradeLoader();
+    loaders.push_back(std::move(bondLoader));
+
+    auto fxLoader = std::make_unique<FxTradeLoader>();
     fxLoader->setDataFile("TradeData/FxTrades.dat");
-    loaders.push_back(fxLoader);
-    
+    loaders.push_back(std::move(fxLoader));
+
     return loaders;
 }
 
-void StreamingTradeLoader::loadPricers() {
-    throw std::runtime_error("Not implemented");
+void StreamingTradeLoader::loadPricers()
+{
+    pricers_ = PricingEngineFactory::loadPricers("./PricingConfig/PricingEngines.xml");
 }
 
-StreamingTradeLoader::~StreamingTradeLoader() {
-    
-}
+void StreamingTradeLoader::loadAndPrice(IScalarResultReceiver* resultReceiver)
+{
+    if (!resultReceiver)
+    {
+        throw std::invalid_argument("resultReceiver is nullptr");
+    }
 
-void StreamingTradeLoader::loadAndPrice(IScalarResultReceiver* resultReceiver) {
-    throw std::runtime_error("Not implemented");
+    loadPricers();
+
+    auto priceOne = [this, resultReceiver](ITrade* rawTrade)
+    {
+        std::unique_ptr<ITrade> trade(rawTrade);
+
+        auto pricerIt = pricers_.find(trade->getTradeType());
+        if (pricerIt == pricers_.end())
+        {
+            resultReceiver->addError(trade->getTradeId(), "No Pricing Engines available for this trade type");
+            return;
+        }
+
+        pricerIt->second->price(trade.get(), resultReceiver);
+    };
+
+    for (const auto& loader : getTradeLoaders())
+    {
+        loader->streamTrades(priceOne);
+    }
 }

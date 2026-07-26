@@ -1,4 +1,5 @@
 #include "BondTradeLoader.h"
+#include "CallbackTradeReceiver.h"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -35,21 +36,22 @@ BondTrade* BondTradeLoader::createTradeFromLine(std::string line) {
     return trade;
 }
 
-void BondTradeLoader::loadTradesFromFile(std::string filename, BondTradeList& tradeList) {
+void BondTradeLoader::loadTradesFromFile(std::string filename, ITradeReceiver& tradeReceiver) 
+{
     if (filename.empty()) {
         throw std::invalid_argument("Filename cannot be null");
     }
-    
+
     std::ifstream stream(filename);
     if (!stream.is_open()) {
         throw std::runtime_error("Cannot open file: " + filename);
     }
-    
+
     int lineCount = 0;
     std::string line;
-    while (std::getline(stream, line)) 
+    while (std::getline(stream, line))
     {
-        if(lineCount == 0) 
+        if(lineCount == 0)
         {
             ++lineCount; //Skip file Header
             continue;
@@ -60,19 +62,25 @@ void BondTradeLoader::loadTradesFromFile(std::string filename, BondTradeList& tr
             line.pop_back();
         }
 
-        tradeList.add(createTradeFromLine(line));    
+        tradeReceiver.add(createTradeFromLine(line));
     }
 }
 
 std::vector<ITrade*> BondTradeLoader::loadTrades() {
     BondTradeList tradeList;
     loadTradesFromFile(dataFile_, tradeList);
-    
+
     std::vector<ITrade*> result;
     for (size_t i = 0; i < tradeList.size(); ++i) {
         result.push_back(tradeList[i]);
     }
     return result;
+}
+
+void BondTradeLoader::streamTrades(const std::function<void(ITrade*)>& onTrade)
+{
+    CallbackTradeReceiver receiver(onTrade);
+    loadTradesFromFile(dataFile_, receiver);
 }
 
 std::string BondTradeLoader::getDataFile() const {

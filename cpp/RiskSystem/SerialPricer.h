@@ -15,7 +15,6 @@ private:
     std::map<std::string, std::shared_ptr<IPricingEngine>> pricers_;
 
     void loadPricers();
-    std::shared_ptr<IPricingEngine> createPricingEngine(const std::string& typeName);
 
 public:
     void price(const std::vector<std::vector<ITrade*>>& tradeContainers,
